@@ -1,9 +1,9 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-const cron = require('node-cron'); // Added for daily reminders
-const { google } = require('googleapis'); // Added for Calendar Sync
+const { Resend } = require('resend');
+const cron = require('node-cron');
+const { google } = require('googleapis');
 
 // --- GOOGLE CALENDAR CONFIG (Placeholder for Step 5) ---
 const oauth2Client = new google.auth.OAuth2(
@@ -37,19 +37,7 @@ cron.schedule('0 9 * * *', async () => {
 
 const sendWelcomeEmail = async (email, name, password = null, role = null) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const roleLabel = {
       owner: 'Owner',
@@ -153,10 +141,10 @@ Login at: https://ccentrik-crm-8a84c.web.app/login
 Keep your credentials safe.
 - CCENTRIK CRM Team`;
 
-    await transporter.sendMail({
-      from: `"CCENTRIK CRM" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: 'CCENTRIK CRM <onboarding@resend.dev>',
       to: email,
-      subject: `Your CCENTRIK CRM account is ready`,
+      subject: 'Your CCENTRIK CRM account is ready',
       text,
       html,
     });
