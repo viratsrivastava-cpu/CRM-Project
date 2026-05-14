@@ -45,7 +45,10 @@ const sendWelcomeEmail = async (email, name, password = null, role = null) => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      tls: { rejectUnauthorized: false }
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     const roleLabel = {
@@ -177,7 +180,7 @@ const register = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role`,
       [name, email, hashedPassword, role, manager_id || null]
     );
-    await sendWelcomeEmail(email, name, password, role);
+    sendWelcomeEmail(email, name, password, role).catch(e => console.error('Email:', e.message));
     res.status(201).json({ message: 'User created successfully!', user: result.rows[0] });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -279,7 +282,7 @@ const firebaseLogin = async (req, res) => {
         [name, email, uid] 
       );
       user = newUser.rows[0];
-      await sendWelcomeEmail(email, name);
+      sendWelcomeEmail(email, name).catch(e => console.error('Email:', e.message));
     } else {
       user = result.rows[0];
     }
