@@ -35,7 +35,7 @@ cron.schedule('0 9 * * *', async () => {
   }
 });
 
-const sendWelcomeEmail = async (email, name) => {
+const sendWelcomeEmail = async (email, name, password = null, role = null) => {
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -47,25 +47,115 @@ const sendWelcomeEmail = async (email, name) => {
       },
       tls: { rejectUnauthorized: false }
     });
-    
-    await transporter.verify();
+
+    const roleLabel = {
+      owner: 'Owner',
+      sales_head: 'Sales Head',
+      manager: 'Sales Manager',
+      inside_sales: 'Inside Sales',
+      employee: 'Sales Executive',
+    }[role] || role || 'Team Member';
+
+    const credentialsBlock = password ? `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0">
+          <span style="color:#64748b;font-size:13px">Email</span><br>
+          <strong style="color:#1e293b;font-size:15px">${email}</strong>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0">
+          <span style="color:#64748b;font-size:13px">Password</span><br>
+          <strong style="color:#1e293b;font-size:15px;font-family:monospace">${password}</strong>
+        </td>
+      </tr>` : '';
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 20px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#1e3a8a;padding:32px 40px;text-align:center">
+            <h1 style="margin:0;color:#ffffff;font-size:24px;letter-spacing:1px">CCENTRIK CRM</h1>
+            <p style="margin:6px 0 0;color:#93c5fd;font-size:13px">Sales Management Platform</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 40px">
+            <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px">Welcome, ${name}!</h2>
+            <p style="margin:0 0 24px;color:#475569;font-size:14px;line-height:1.6">
+              Your CCENTRIK CRM account has been set up. You can now access the platform and start managing your leads and sales pipeline.
+            </p>
+
+            <!-- Role Badge -->
+            <p style="margin:0 0 20px">
+              <span style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:bold;padding:4px 12px;border-radius:20px;border:1px solid #bfdbfe">${roleLabel}</span>
+            </p>
+
+            <!-- Credentials Box -->
+            ${password ? `
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px">
+              <p style="margin:0 0 14px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px">Your Login Details</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${credentialsBlock}
+              </table>
+            </div>` : ''}
+
+            <!-- CTA Button -->
+            <div style="text-align:center;margin:28px 0">
+              <a href="https://ccentrik-crm-8a84c.web.app/login"
+                 style="background:#1e3a8a;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:bold;display:inline-block">
+                Login to CCENTRIK CRM
+              </a>
+            </div>
+
+            <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6">
+              If you have any questions, contact your administrator.<br>
+              Please keep your login credentials safe and do not share them.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e2e8f0;text-align:center">
+            <p style="margin:0;color:#94a3b8;font-size:12px">
+              This is an automated message from CCENTRIK CRM.<br>
+              CCENTRIK &bull; India
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    const text = `Welcome to CCENTRIK CRM, ${name}!
+
+Your account has been created.
+Role: ${roleLabel}
+${password ? `Email: ${email}\nPassword: ${password}\n` : ''}
+Login at: https://ccentrik-crm-8a84c.web.app/login
+
+Keep your credentials safe.
+- CCENTRIK CRM Team`;
+
     await transporter.sendMail({
       from: `"CCENTRIK CRM" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: '🎉 Welcome to CCENTRIK CRM!',
-      // Anti-Spam Headers
-      headers: { 'X-Priority': '1', 'X-MSMail-Priority': 'High' }, 
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:30px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0">
-          <h2 style="color:#1e3a8a">Welcome, ${name}! 🎉</h2>
-          <p style="color:#475569">Your CCENTRIK CRM account has been created successfully!</p>
-          <div style="background:#eff6ff;border-radius:8px;padding:16px;margin:20px 0">
-            <p style="color:#1d4ed8;margin:0"><strong>Login at:</strong> <a href="https://ccentrik-crm-8a84c.web.app/login">ccentrik-crm.web.app</a></p>
-          </div>
-          <p style="color:#94a3b8;font-size:12px">If you didn't request this, please ignore this email.</p>
-          <p style="color:#94a3b8;font-size:12px">CCENTRIK CRM Team</p>
-        </div>
-      `,
+      subject: `Your CCENTRIK CRM account is ready`,
+      text,
+      html,
     });
     console.log('✅ Welcome email sent to:', email);
   } catch (err) {
@@ -87,7 +177,7 @@ const register = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role`,
       [name, email, hashedPassword, role, manager_id || null]
     );
-    await sendWelcomeEmail(email, name);
+    await sendWelcomeEmail(email, name, password, role);
     res.status(201).json({ message: 'User created successfully!', user: result.rows[0] });
   } catch (err) {
     res.status(500).json({ message: err.message });
