@@ -141,14 +141,18 @@ Login at: https://ccentrik-crm-8a84c.web.app/login
 Keep your credentials safe.
 - CCENTRIK CRM Team`;
 
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: 'CCENTRIK CRM <onboarding@resend.dev>',
       to: email,
       subject: 'Your CCENTRIK CRM account is ready',
       text,
       html,
     });
-    console.log('✅ Welcome email sent to:', email);
+    if (error) {
+      console.error('❌ Email error:', JSON.stringify(error));
+    } else {
+      console.log('✅ Welcome email sent to:', email, '| ID:', data?.id);
+    }
   } catch (err) {
     console.log('❌ Email error:', err.message);
   }
